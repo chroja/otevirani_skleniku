@@ -53,6 +53,7 @@ void setup() {
   senzoryDS.begin();
   pinMode(otevrit, OUTPUT);
   pinMode(zavrit, OUTPUT);
+  ctiTeplotu(); //volání fce pro čtení teploty
 
   wdt_enable(WDTO_4S); //nastaví watchdog, že musí být restartován každé 4 sec, pokud bude delay více jak 4 sec tak se restartuje MCU!
   //proto nepoužívat delay (max nějaký ms), ale všechno tahat přes millis()
@@ -65,8 +66,10 @@ void loop() {
   else {
     Restart("Přetekla proměnná pro čas. Nutný restart. Hodnota: ", posledniMillis); //pravidelný restart po přetečení proměnné pro čas
   }
-
-  ctiTeplotu(); //volání fce pro čtení teploty
+  if (dalsiCteniTeploty <= millis()) { //pokud je další čtení teploty větší, než je millis, tak ukonči funkci
+    ctiTeplotu(); //volání fce pro čtení teploty
+  }
+  
 
   if ((teplota <= teplotaZavreno) && (otevreno == true)) { //pokud je teplota nižší než teplota pro zavřeno a zároveň je otevřeno, tak zavolej fci zavři
     zavri();
@@ -86,9 +89,7 @@ void ctiTeplotu(){
   if (ctiTeplotuPovoleno == false) { //pokud je zakázáno čtení teploty, tak ukonči funkci (bez čtení teploty).
     return;
   }
-  if (dalsiCteniTeploty >= millis()) { //pokud je další čtení teploty větší, než je millis, tak ukonči funkci
-    return;
-  }
+
   senzoryDS.requestTemperatures(); // načtení informací ze všech připojených čidel na daném pinu
   float teplotaBezKorekce = senzoryDS.getTempCByIndex(0); //ulozeni teploty do promene
   // výpis teploty na sériovou linku, při připojení více čidel
@@ -139,7 +140,7 @@ void otevri (){
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu otevírání
     zacatekZmenyStavuOtevtit = millis(); //uložení začátku otevírání
   }
-  if ((zacatekZmenyStavuOtevtit + delkaZmenyStavu) <= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
+  if ((zacatekZmenyStavuOtevtit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(otevirani == false){ //pokud je otevírání false, tak nastaví na true - což začne pohyb. Zároveň nastaví otevírání na true aby to už do tohoto ifu nepadlo
       otevirani = true;
       digitalWrite(otevrit, zapnuto);
@@ -160,7 +161,7 @@ void zavri (){
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu zavítání
     zacatekZmenyStavuZavrit = millis(); //uložení začátku zavírání
   }
-  if ((zacatekZmenyStavuZavrit + delkaZmenyStavu) <= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
+  if ((zacatekZmenyStavuZavrit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(zavirani == false){ //pokud je zavirani false, tak nastaví na true - což začne pohyb. Zároveň nastaví zavírání na true aby to už do tohoto ifu nepadlo
       zavirani = true;
       digitalWrite(zavrit, zapnuto);
