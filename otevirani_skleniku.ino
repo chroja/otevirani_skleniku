@@ -66,14 +66,17 @@ void loop() {
   else {
     Restart("Přetekla proměnná pro čas. Nutný restart. Hodnota: ", posledniMillis); //pravidelný restart po přetečení proměnné pro čas
   }
+
+  DEBUG_rele();
+
   if (dalsiCteniTeploty <= millis()) { //pokud je další čtení teploty větší, než je millis, tak ukonči funkci
     ctiTeplotu(); //volání fce pro čtení teploty
   }
   
-
   if ((teplota <= teplotaZavreno) && (otevreno == true)) { //pokud je teplota nižší než teplota pro zavřeno a zároveň je otevřeno, tak zavolej fci zavři
     zavri();
   }
+  
   if ((teplota >= teplotaOtevreno) && (otevreno == false)) { //pokud je teplota vyšší než teplota pro otevřeno a zároveň není otevřeno, tak zavolej fci otevři
     otevri();
   }
@@ -174,4 +177,30 @@ void zavri (){
     ctiTeplotuPovoleno = true; //povolí čtení teploty
     Serial.println("zavirani ukonceno");
   }  
+}
+
+
+void DEBUG_rele(){
+  if (otevirani == true && digitalRead(otevrit) == LOW){
+    Serial.print(".");
+  }
+  else if (otevirani == false && digitalRead(otevrit) == HIGH){
+    Serial.print(".");
+  }
+  else{
+    Serial.print("\nfail na pinu pro otevirani\n");
+  }
+  
+  if (zavirani == true && digitalRead(zavrit) == LOW){
+    Serial.print(".");
+  }
+  else if (zavirani == false && digitalRead(zavrit) == HIGH){
+    Serial.print(".");
+  }
+  else{
+    Serial.print("\nfail na pinu pro zavirani\n");
+  }
+
+  delay (200);
+
 }
