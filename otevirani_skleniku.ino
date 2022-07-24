@@ -41,8 +41,8 @@ bool otevirani = false; //proces
 bool zavirani = false; //proces
 bool ctiTeplotuPovoleno = true;
 
-#define zapnuto LOW //
-#define vypnuto HIGH //
+//#define zapnuto LOW //
+//#define vypnuto HIGH //
 
 
 
@@ -146,11 +146,11 @@ void otevri (){
   if ((zacatekZmenyStavuOtevtit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(otevirani == false){ //pokud je otevírání false, tak nastaví na true - což začne pohyb. Zároveň nastaví otevírání na true aby to už do tohoto ifu nepadlo
       otevirani = true;
-      digitalWrite(otevrit, zapnuto);
+      digitalWrite(otevrit, LOW);
     }
   }
   else if (otevirani == true){ //pokud není splněna první podmínka (s millis), tak znamená, že už uběhl požadovaný čas a spadne to sem
-    digitalWrite(otevrit, vypnuto); //vypne motor
+    digitalWrite(otevrit, HIGH); //vypne motor
     otevirani = false; // nastaví, že proces je dokončen
     otevreno = true; //řiká, že je otevřeno
     ctiTeplotuPovoleno = true; //povolí čtení teploty
@@ -167,11 +167,11 @@ void zavri (){
   if ((zacatekZmenyStavuZavrit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(zavirani == false){ //pokud je zavirani false, tak nastaví na true - což začne pohyb. Zároveň nastaví zavírání na true aby to už do tohoto ifu nepadlo
       zavirani = true;
-      digitalWrite(zavrit, zapnuto);
+      digitalWrite(zavrit, LOW);
     }
   }
   else if (zavirani == true){ //pokud není splněna první podmínka (s millis), tak znamená, že už uběhl požadovaný čas a spadne to sem
-    digitalWrite(zavrit, vypnuto); //vypne motor
+    digitalWrite(zavrit, HIGH); //vypne motor
     zavirani = false; // nastaví, že proces je dokončen
     otevreno = false; //řiká, že není otevřeno, tudíž je zavřeno
     ctiTeplotuPovoleno = true; //povolí čtení teploty
