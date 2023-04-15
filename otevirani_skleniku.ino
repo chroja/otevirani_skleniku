@@ -12,6 +12,8 @@
 
 // nastavení čísla vstupního pinu
 #define pinCidlaDS 4
+
+//#define TEST_RUN
 // vytvoření instance oneWireDS z knihovny OneWire
 OneWire oneWireDS(pinCidlaDS);
 // vytvoření instance senzoryDS z knihovny DallasTemperature
@@ -21,12 +23,26 @@ float korekce = 0.0;
 int chybaCteniTeploty = 0;
 int chybaCteniTeplotyMax = 5;
 unsigned long dalsiCteniTeploty = 0;
-unsigned long periodaCteniTeploty = 60000; // 60 sec v ms
+
+unsigned long volaniStavu = 0;
 
 unsigned long posledniMillis = 0;
 unsigned long zacatekZmenyStavuOtevtit = 0;
 unsigned long zacatekZmenyStavuZavrit = 0;
-unsigned long delkaZmenyStavu = 110000; //110 sec v ms
+
+
+#ifdef TEST_RUN
+  unsigned long periodaCteniTeploty = 5000;//60000; // 60 sec v ms
+  unsigned long periodaVolaniStavu = 15000;//300000; // 5 min v ms
+  unsigned long delkaZmenyStavu = 1000;//110000; //110 sec v ms
+  float teplotaBezKorekce = 25;
+#else
+  unsigned long periodaCteniTeploty = 60000; // 60 sec v ms
+  unsigned long periodaVolaniStavu = 300000; // 5 min v ms
+  unsigned long delkaZmenyStavu = 110000; //110 sec v ms
+#endif
+
+
 
 //definice pinů relé
 #define otevrit 5
@@ -49,11 +65,17 @@ bool ctiTeplotuPovoleno = true;
 void setup() {
   // komunikace přes sériovou linku rychlostí 9600 baud
   Serial.begin(9600);
+  Serial.println("start");
   // zapnutí komunikace knihovny s teplotním čidlem
   senzoryDS.begin();
   pinMode(otevrit, OUTPUT);
   pinMode(zavrit, OUTPUT);
+  digitalWrite(otevrit, HIGH);
+  digitalWrite(zavrit, HIGH);
   ctiTeplotu(); //volání fce pro čtení teploty
+  if(teplota <= teplotaZavreno){
+    otevreno = true;
+  }
 
   wdt_enable(WDTO_4S); //nastaví watchdog, že musí být restartován každé 4 sec, pokud bude delay více jak 4 sec tak se restartuje MCU!
   //proto nepoužívat delay (max nějaký ms), ale všechno tahat přes millis()
@@ -81,6 +103,19 @@ void loop() {
     otevri();
   }
 
+  if(((volaniStavu + periodaVolaniStavu) < millis()) && (otevreno == true)){
+    if(otevirani == false){
+      otevreno = false;
+      volaniStavu = millis();
+    }
+  }
+  else if(((volaniStavu + periodaVolaniStavu) < millis()) && (otevreno == false)){
+    if(zavirani == false){
+      otevreno = true;
+      volaniStavu = millis();
+    }
+  }
+
   wdt_reset(); //restart watchdoga. Lze přidat i do časově náročných fcí kde by hrozilo resetování MCU. 
 }
 
@@ -94,12 +129,13 @@ void ctiTeplotu(){
   }
 
   senzoryDS.requestTemperatures(); // načtení informací ze všech připojených čidel na daném pinu
-  float teplotaBezKorekce = senzoryDS.getTempCByIndex(0); //ulozeni teploty do promene
+  #ifndef TEST_RUN
+    float teplotaBezKorekce = senzoryDS.getTempCByIndex(0); //ulozeni teploty do promene
+  #endif
   // výpis teploty na sériovou linku, při připojení více čidel
   // na jeden pin můžeme postupně načíst všechny teploty
   // pomocí změny čísla v závorce (0) - pořadí dle unikátní adresy čidel
-
-  Serial.println("Teplota bez korekce je: " + String(teplotaBezKorekce) + "°C.");
+  Serial.println("\nTeplota bez korekce je: " + String(teplotaBezKorekce) + "°C.");
   if (( teplotaBezKorekce > -127) && ( teplotaBezKorekce < 85)){ //kontrola teploty jestli není chybně přečtena
       chybaCteniTeploty = 0; //nastavení počítadla chyb na 0
       teplota = teplotaBezKorekce + korekce; //ke čtené teplotě to přičte korekci čidla
@@ -139,7 +175,7 @@ void Restart(String Message, int Value){
 
 void otevri (){
   if (otevirani == false){ //začátek otevírání - poprvé vyvolaná fce otevri
-    Serial.println("otevirani zahajeno");
+    Serial.println("\notevirani zahajeno");
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu otevírání
     zacatekZmenyStavuOtevtit = millis(); //uložení začátku otevírání
   }
@@ -154,13 +190,13 @@ void otevri (){
     otevirani = false; // nastaví, že proces je dokončen
     otevreno = true; //řiká, že je otevřeno
     ctiTeplotuPovoleno = true; //povolí čtení teploty
-    Serial.println("otevirani ukonceno");
+    Serial.println("\notevirani ukonceno");
   }  
 }
 
 void zavri (){
   if (zavirani == false){ //začátek zavírání - poprvé vyvolaná fce zavri
-    Serial.println("zavirani zahajeno"); 
+    Serial.println("\nzavirani zahajeno"); 
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu zavítání
     zacatekZmenyStavuZavrit = millis(); //uložení začátku zavírání
   }
@@ -175,7 +211,7 @@ void zavri (){
     zavirani = false; // nastaví, že proces je dokončen
     otevreno = false; //řiká, že není otevřeno, tudíž je zavřeno
     ctiTeplotuPovoleno = true; //povolí čtení teploty
-    Serial.println("zavirani ukonceno");
+    Serial.println("\nzavirani ukonceno");
   }  
 }
 
@@ -188,7 +224,7 @@ void DEBUG_rele(){
     Serial.print(".");
   }
   else{
-    Serial.print("\nfail na pinu pro otevirani\n");
+    //Serial.print("\nfail na pinu pro otevirani\n");
   }
   
   if (zavirani == true && digitalRead(zavrit) == LOW){
@@ -198,7 +234,7 @@ void DEBUG_rele(){
     Serial.print(".");
   }
   else{
-    Serial.print("\nfail na pinu pro zavirani\n");
+    //Serial.print("\nfail na pinu pro zavirani\n");
   }
 
   delay (200);
