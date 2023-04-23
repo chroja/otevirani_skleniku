@@ -29,6 +29,8 @@ unsigned long volaniStavu = 0;
 unsigned long posledniMillis = 0;
 unsigned long zacatekZmenyStavuOtevtit = 0;
 unsigned long zacatekZmenyStavuZavrit = 0;
+unsigned long konecZmenyStavuOtevtit = 0;
+unsigned long konecZmenyStavuZavrit = 0;
 
 
 #ifdef TEST_RUN
@@ -105,12 +107,14 @@ void loop() {
 
   if(((volaniStavu + periodaVolaniStavu) < millis()) && (otevreno == true)){
     if(otevirani == false){
+      Serial.println("periodaVolaniStavu1");
       otevreno = false;
       volaniStavu = millis();
     }
   }
   else if(((volaniStavu + periodaVolaniStavu) < millis()) && (otevreno == false)){
     if(zavirani == false){
+      Serial.println("periodaVolaniStavu2");
       otevreno = true;
       volaniStavu = millis();
     }
@@ -178,8 +182,9 @@ void otevri (){
     Serial.println("\notevirani zahajeno");
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu otevírání
     zacatekZmenyStavuOtevtit = millis(); //uložení začátku otevírání
+    konecZmenyStavuOtevtit = zacatekZmenyStavuOtevtit + delkaZmenyStavu;
   }
-  if ((zacatekZmenyStavuOtevtit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
+  if (konecZmenyStavuOtevtit >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(otevirani == false){ //pokud je otevírání false, tak nastaví na true - což začne pohyb. Zároveň nastaví otevírání na true aby to už do tohoto ifu nepadlo
       otevirani = true;
       digitalWrite(otevrit, LOW);
@@ -199,8 +204,9 @@ void zavri (){
     Serial.println("\nzavirani zahajeno"); 
     ctiTeplotuPovoleno = false; //vypnutí čtení teploty po dobu zavítání
     zacatekZmenyStavuZavrit = millis(); //uložení začátku zavírání
+    konecZmenyStavuZavrit = zacatekZmenyStavuZavrit + delkaZmenyStavu;
   }
-  if ((zacatekZmenyStavuZavrit + delkaZmenyStavu) >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
+  if (konecZmenyStavuZavrit >= millis()){ //pokud je současný čas menší než čas začátku a délky trvání, tak to padne sem
     if(zavirani == false){ //pokud je zavirani false, tak nastaví na true - což začne pohyb. Zároveň nastaví zavírání na true aby to už do tohoto ifu nepadlo
       zavirani = true;
       digitalWrite(zavrit, LOW);
@@ -224,7 +230,7 @@ void DEBUG_rele(){
     Serial.print(".");
   }
   else{
-    //Serial.print("\nfail na pinu pro otevirani\n");
+    Serial.print("\nfail na pinu pro otevirani\n");
   }
   
   if (zavirani == true && digitalRead(zavrit) == LOW){
@@ -234,7 +240,7 @@ void DEBUG_rele(){
     Serial.print(".");
   }
   else{
-    //Serial.print("\nfail na pinu pro zavirani\n");
+    Serial.print("\nfail na pinu pro zavirani\n");
   }
 
   delay (200);
